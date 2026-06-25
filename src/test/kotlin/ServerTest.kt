@@ -1,12 +1,13 @@
 package com.example
 
+import com.example.payment.model.PaymentChargeRequest
+import io.ktor.client.call.bodyAsText
 import io.ktor.client.request.*
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.testing.testApplication
 import kotlin.test.*
 
 class ServerTest {
-
     @Test
     fun `test root endpoint`() = testApplication {
         configure()
@@ -14,15 +15,24 @@ class ServerTest {
     }
 
     @Test
-    fun `test payments endpoints`() = testApplication {
+    fun `test payment charge route`() = testApplication {
         configure()
 
-        val accountId = "00000000-0000-0000-0000-000000000001"
-        val createResponse = client.post("/payments/create?accountId=$accountId&amount=10.50&reference=test")
-        assertEquals(HttpStatusCode.Created, createResponse.status)
+        val request = PaymentChargeRequest(
+            accountId = java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            amount = java.math.BigDecimal("10.50"),
+            reference = "test-charge",
+            idempotencyKey = "idempotency-001"
+        )
 
-        val listResponse = client.get("/payments")
-        assertEquals(HttpStatusCode.OK, listResponse.status)
-        assertTrue(listResponse.bodyAsText().contains("reference=test"))
+        val response = client.post("/payments/charge") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status)
+        val bodyText = response.bodyAsText()
+        assertTrue(bodyText.contains("paymentId"))
+        assertTrue(bodyText.contains("COMPLETED"))
     }
 }
