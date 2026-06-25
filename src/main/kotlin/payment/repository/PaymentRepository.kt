@@ -1,29 +1,28 @@
 package com.example.payment.repository
 
-import com.example.payment.model.Payment
+import com.example.payment.model.PaymentTransaction
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 interface PaymentRepository {
-    fun save(payment: Payment)
-    fun findById(id: UUID): Payment?
-    fun findAll(): List<Payment>
+    fun save(transaction: PaymentTransaction)
+    fun update(transaction: PaymentTransaction)
+    fun findById(id: UUID): PaymentTransaction?
+    fun findAll(): List<PaymentTransaction>
 }
 
 class InMemoryPaymentRepository : PaymentRepository {
-    private val storage = mutableMapOf<UUID, Payment>()
-    private val lock = Any()
+    private val storage = ConcurrentHashMap<UUID, PaymentTransaction>()
 
-    override fun save(payment: Payment) {
-        synchronized(lock) {
-            storage[payment.id] = payment
-        }
+    override fun save(transaction: PaymentTransaction) {
+        storage[transaction.id] = transaction
     }
 
-    override fun findById(id: UUID): Payment? = synchronized(lock) {
-        storage[id]
+    override fun update(transaction: PaymentTransaction) {
+        storage[transaction.id] = transaction
     }
 
-    override fun findAll(): List<Payment> = synchronized(lock) {
-        storage.values.toList()
-    }
+    override fun findById(id: UUID): PaymentTransaction? = storage[id]
+
+    override fun findAll(): List<PaymentTransaction> = storage.values.toList()
 }
